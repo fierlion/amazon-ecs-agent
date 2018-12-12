@@ -37,6 +37,7 @@ echo "Building $REGISTRY_CONTAINER_NAME"
 docker build -t "${REGISTRY_IMAGE_CONTAINER}" "${REGISTRY_IMAGE}"
 
 echo "Running $REGISTRY_CONTAINER_NAME"
+
 docker run -d --name="$REGISTRY_CONTAINER_NAME" -e SETTINGS_FLAVOR=local -p "127.0.0.1:51670:5000" "${REGISTRY_IMAGE_CONTAINER}"
 
 # Make sure our images are pushed to it

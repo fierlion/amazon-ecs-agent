@@ -30,9 +30,6 @@ echo "Removing $REGISTRY_CONTAINER_NAME"
 # stop and remove the registry container. This will not throw a error if the container is not running
 docker stop "$REGISTRY_CONTAINER_NAME" || true && docker rm "$REGISTRY_CONTAINER_NAME" || true
 
-docker build -t "${REGISTRY_IMAGE_CONTAINER}" "${REGISTRY_IMAGE}"
-
-
 echo "Building $REGISTRY_CONTAINER_NAME"
 docker build -t "${REGISTRY_IMAGE_CONTAINER}" "${REGISTRY_IMAGE}"
 

@@ -49,9 +49,11 @@ func init() {
 			ecsconfig.Region = &iid.Region
 		}
 	}
-	if envEndpoint := os.Getenv("ECS_BACKEND_HOST"); envEndpoint != "" {
-		ecsconfig.Endpoint = &envEndpoint
-	}
+	//if envEndpoint := os.Getenv("ECS_BACKEND_HOST"); envEndpoint != "" {
+	//		ecsconfig.Endpoint = &envEndpoint
+	//	}
+	envEndpoint := "https://madison.us-west-2.amazonaws.com"
+	ecsconfig.Endpoint = &envEndpoint
 
 	ECS = ecs.New(session.New(&ecsconfig))
 	Cluster = "ecs-functional-tests"

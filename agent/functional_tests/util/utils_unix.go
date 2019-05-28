@@ -70,9 +70,11 @@ func init() {
 			ecsconfig.Region = &iid.Region
 		}
 	}
-	if envEndpoint := os.Getenv("ECS_BACKEND_HOST"); envEndpoint != "" {
-		ecsconfig.Endpoint = &envEndpoint
-	}
+	//if envEndpoint := os.Getenv("ECS_BACKEND_HOST"); envEndpoint != "" {
+	//		ecsconfig.Endpoint = &envEndpoint
+	//	}
+	envEndpoint := "https://madison.us-west-2.amazonaws.com"
+	ecsconfig.Endpoint = &envEndpoint
 
 	ECS = ecs.New(session.New(&ecsconfig))
 	Cluster = "ecs-functional-tests"
@@ -298,7 +300,7 @@ func (agent *TestAgent) getBindMounts() []string {
 }
 
 func (agent *TestAgent) Cleanup() {
-	if agent.Options == nil || ! agent.Options.EnableTaskENI {
+	if agent.Options == nil || !agent.Options.EnableTaskENI {
 		// if task networking is not enabled, do the usual cleanup
 		agent.platformIndependentCleanup()
 		return

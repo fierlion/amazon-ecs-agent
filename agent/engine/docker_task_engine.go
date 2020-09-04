@@ -1200,6 +1200,16 @@ func (engine *DockerTaskEngine) startContainer(task *apitask.Task, container *ap
 
 		}
 	}
+
+	startTime := time.Now()
+	seelog.Infof("###TEST### start: %v\n", startTime)
+	execContainerOut, err := engine.client.CreateContainerExec(engine.ctx, dockerContainerMD.DockerID, 10*time.Second)
+	seelog.Infof("###TEST### execContainerOut: %v\nexecErr: %v\n", execContainerOut, err)
+	endTime := time.Now()
+	seelog.Infof("###TEST### end: %v\n", endTime)
+	elapsedTime := endTime.Sub(startTime)
+	seelog.Infof("###TEST### elapsed: %v\n", elapsedTime)
+
 	return dockerContainerMD
 }
 

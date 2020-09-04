@@ -117,6 +117,14 @@ type DockerClient interface {
 	// provided for the request.
 	StartContainer(context.Context, string, time.Duration) DockerContainerMetadata
 
+	// CreateContainerExec creates a container with the provided Config, HostConfig, and name. A timeout value
+	// and a context should be provided for the request.
+	CreateContainerExec(ctx context.Context, containerID string, timeout time.Duration) (*types.IDResponse, error)
+
+	// StartContainer starts the container identified by the name provided. A timeout value and a context should be
+	// provided for the request.
+	//StartContainerExec(context.Context, string, time.Duration) DockerContainerMetadata
+
 	// StopContainer stops the container identified by the name provided. A timeout value and a context should be provided
 	// for the request.
 	StopContainer(context.Context, string, time.Duration) DockerContainerMetadata
@@ -590,6 +598,80 @@ func (dg *dockerGoClient) startContainer(ctx context.Context, id string) DockerC
 	}
 
 	return metadata
+}
+
+//type ExecConfig struct {
+//    User         string   // User that will run the command
+//    Privileged   bool     // Is the container in privileged mode
+//    Tty          bool     // Attach standard streams to a tty.
+//    AttachStdin  bool     // Attach the standard input, makes possible user interaction
+//    AttachStderr bool     // Attach the standard error
+//    AttachStdout bool     // Attach the standard output
+//    Detach       bool     // Execute in detach mode
+//    DetachKeys   string   // Escape keys for detach
+//    Env          []string // Environment variables
+//    Cmd          []string // Execution commands and args
+//}
+
+func (dg *dockerGoClient) CreateContainerExec(ctx context.Context, containerID string, timeout time.Duration) (*types.IDResponse, error) {
+	type createContainerExecResponse struct {
+		execID *types.IDResponse
+		err    error
+	}
+	execEnv := make([]string, 0) // this will need to have all config for custom paths
+	execCmd := make([]string, 0)
+	execCmd = append(execCmd, "ls")
+	execConfig := types.ExecConfig{
+		User:         "agent",
+		Privileged:   false,
+		AttachStdin:  false,
+		AttachStderr: false,
+		AttachStdout: false,
+		Detach:       true,
+		DetachKeys:   "",
+		Env:          execEnv,
+		Cmd:          execCmd,
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	defer metrics.MetricsEngineGlobal.RecordDockerMetric("CREATE_CONTAINER_EXEC")()
+	response := make(chan createContainerExecResponse, 1)
+	go func() {
+		execIDresponse, err := dg.createContainerExec(ctx, containerID, execConfig)
+		response <- createContainerExecResponse{execIDresponse, err}
+	}()
+
+	select {
+	case resp := <-response:
+		return resp.execID, resp.err
+	case <-ctx.Done():
+		// Context has either expired or canceled. If it has timed out,
+		// send back the DockerExecTimeoutError
+		err := ctx.Err()
+		if err == context.DeadlineExceeded {
+			//return DockerContainerExecID{Error: &DockerTimeoutError{timeout, "created"}}
+			return nil, &DockerExecTimeoutError{timeout, "created"}
+		}
+		// Context was canceled even though there was no timeout. Send
+		// back an error.
+		//return DockerContainerExecID{Error: &CannotCreateContainerError{err}}
+		return nil, &CannotCreateContainerExecError{err}
+	}
+}
+
+func (dg *dockerGoClient) createContainerExec(ctx context.Context, containerID string, config types.ExecConfig) (*types.IDResponse, error) {
+	client, err := dg.sdkDockerClient()
+	if err != nil {
+		return nil, err
+	}
+
+	execIDResponse, err := client.ContainerExecCreate(ctx, containerID, config)
+	if err != nil {
+		//return DockerContainerMetadata{Error: CannotCreateContainerError{err}}
+		return nil, &CannotCreateContainerExecError{err}
+	}
+	return &execIDResponse, nil
 }
 
 // DockerStateToState converts the container status from docker to status recognized by the agent

@@ -22,6 +22,8 @@ import (
 const (
 	// DockerTimeoutErrorName is the name of docker timeout error.
 	DockerTimeoutErrorName = "DockerTimeoutError"
+	// DockerExecTimeoutErrorName is the name of docker timeout error.
+	DockerExecTimeoutErrorName = "DockerExecTimeoutError"
 	// CannotInspectContainerErrorName is the name of container inspect error.
 	CannotInspectContainerErrorName = "CannotInspectContainerError"
 	// CannotStartContainerErrorName is the name of container start error.
@@ -46,6 +48,21 @@ func (err *DockerTimeoutError) Error() string {
 
 // ErrorName returns the name of the error
 func (err *DockerTimeoutError) ErrorName() string { return DockerTimeoutErrorName }
+
+// DockerExecTimeoutError is an error type for describing timeouts
+type DockerExecTimeoutError struct {
+	// Duration is the timeout period.
+	Duration time.Duration
+	// ExecCommand is the description of operation that timed out.
+	ExecCommand string
+}
+
+func (err *DockerExecTimeoutError) Error() string {
+	return "Could not exec command: " + err.ExecCommand + "; timed out after waiting " + err.Duration.String()
+}
+
+// ErrorName returns the name of the error
+func (err *DockerExecTimeoutError) ErrorName() string { return DockerExecTimeoutErrorName }
 
 // OutOfMemoryError is a type for errors caused by running out of memory
 type OutOfMemoryError struct{}
@@ -206,6 +223,20 @@ func (err CannotStartContainerError) Error() string {
 // ErrorName returns name of the CannotStartContainerError
 func (err CannotStartContainerError) ErrorName() string {
 	return CannotStartContainerErrorName
+}
+
+// CannotCreateContainerExecError indicates any error when trying to create an exec object
+type CannotCreateContainerExecError struct {
+	FromError error
+}
+
+func (err CannotCreateContainerExecError) Error() string {
+	return err.FromError.Error()
+}
+
+// ErrorName returns name of the CannotCreateContainerExecError.
+func (err CannotCreateContainerExecError) ErrorName() string {
+	return "CannotCreateContainerExecError"
 }
 
 // CannotInspectContainerError indicates any error when trying to inspect a container

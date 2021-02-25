@@ -102,7 +102,7 @@ func startTelemetrySession(params *TelemetrySessionParams, statsEngine stats.Eng
 	url := formatURL(tcsEndpoint, params.Cfg.Cluster, params.ContainerInstanceArn, params.TaskEngine)
 	return startSession(params.Ctx, url, params.Cfg, params.CredentialProvider, statsEngine,
 		defaultHeartbeatTimeout, defaultHeartbeatJitter, config.DefaultContainerMetricsPublishInterval,
-		params.DeregisterInstanceEventStream)
+		params.DeregisterInstanceEventStream, params.TaskEngine)
 }
 
 func startSession(
@@ -113,7 +113,8 @@ func startSession(
 	statsEngine stats.Engine,
 	heartbeatTimeout, heartbeatJitter,
 	publishMetricsInterval time.Duration,
-	deregisterInstanceEventStream *eventstream.EventStream) error {
+	deregisterInstanceEventStream *eventstream.EventStream,
+	taskEngine engine.TaskEngine) error {
 	client := tcsclient.New(url, cfg, credentialProvider, statsEngine,
 		publishMetricsInterval, wsRWTimeout, cfg.DisableMetrics.Enabled())
 	defer client.Close()
@@ -136,7 +137,7 @@ func startSession(
 	timer := time.NewTimer(retry.AddJitter(heartbeatTimeout, heartbeatJitter))
 	defer timer.Stop()
 	client.AddRequestHandler(heartbeatHandler(timer))
-	client.AddRequestHandler(ackPublishMetricHandler(timer))
+	client.AddRequestHandler(ackPublishMetricHandler(timer, taskEngine))
 	client.AddRequestHandler(ackPublishHealthMetricHandler(timer))
 	client.SetAnyRequestHandler(anyMessageHandler(client))
 	serveC := make(chan error)
@@ -166,9 +167,12 @@ func heartbeatHandler(timer *time.Timer) func(*ecstcs.HeartbeatMessage) {
 
 // ackPublishMetricHandler consumes the ack message from the backend. THe backend sends
 // the ack each time it processes a metric message.
-func ackPublishMetricHandler(timer *time.Timer) func(*ecstcs.AckPublishMetric) {
+func ackPublishMetricHandler(timer *time.Timer, taskEngine engine.TaskEngine) func(*ecstcs.AckPublishMetric) {
 	return func(*ecstcs.AckPublishMetric) {
 		seelog.Debug("Received AckPublishMetric from tcs")
+		dockerTaskEngine := taskEngine.TaskEngineClient()
+		listContainersResponse := dockerTaskEngine.ListContainers(context.TODO(), false, time.Second*2)
+		seelog.Debugf("list containers response: %v", listContainersResponse)
 		timer.Reset(retry.AddJitter(defaultHeartbeatTimeout, defaultHeartbeatJitter))
 	}
 }

@@ -633,8 +633,22 @@ func (agent *ecsAgent) startAsyncRoutines(
 		go handlers.ServeTaskHTTPEndpoint(agent.ctx, credentialsManager, state, client, agent.containerInstanceARN, agent.cfg, statsEngine, agent.availabilityZone)
 	}
 
+	// setup engine heartbeat
+	engineHeartbeat := make(chan interface{})
+	engineHeartbeatInterval := 1*time.Minute
 	// Start sending events to the backend
-	go eventhandler.HandleEngineEvents(agent.ctx, taskEngine, client, taskHandler, attachmentEventHandler)
+	go eventhandler.HandleEngineEvents(agent.ctx, taskEngine, client, taskHandler, attachmentEventHandler, engineHeartbeatInterval, engineHeartbeat)
+	go func() {
+		for {
+			select {
+			case _, ok := <-engineHeartbeat:
+				if ok == false {
+					continue
+				}
+				seelog.Infof("PULSE")
+			}
+		}
+	}()
 
 	telemetrySessionParams := tcshandler.TelemetrySessionParams{
 		Ctx:                           agent.ctx,

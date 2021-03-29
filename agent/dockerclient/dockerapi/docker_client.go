@@ -162,6 +162,8 @@ type DockerClient interface {
 	// should be provided for the request.
 	ListContainers(context.Context, bool, time.Duration) ListContainersResponse
 
+	PingDocker(context.Context, time.Duration) 
+
 	// ListImages returns the set of the images known to the Docker daemon
 	ListImages(context.Context, time.Duration) ListImagesResponse
 
@@ -1061,6 +1063,43 @@ func (dg *dockerGoClient) listContainers(ctx context.Context, all bool) ListCont
 	}
 
 	return ListContainersResponse{DockerIDs: containerIDs, Error: nil}
+}
+
+
+func (dg *dockerGoClient) PingDocker(ctx context.Context, timeout time.Duration) (types.Ping, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// Buffered channel so in the case of timeout it takes one write, never gets
+	// read, and can still be GC'd
+	response := make(chan types.Ping, 1)
+	go func() { response <- dg.pingDocker(ctx) }()
+	select {
+	case resp := <-response:
+		return resp
+	case <-ctx.Done():
+		// Context has either expired or canceled. If it has timed out,
+		// send back the DockerTimeoutError
+		err := ctx.Err()
+		if err == context.DeadlineExceeded {
+			return ListContainersResponse{Error: &DockerTimeoutError{timeout, "listing"}}
+		}
+		return err
+	}
+}
+
+func (dg *dockerGoClient) pingDocker(ctx context.Context) (types.Ping, error) {
+        client, err := dg.sdkDockerClient()
+        if err != nil {
+                return err 
+        }
+
+        pingResponse, err := client.Ping(ctx)
+        if err != nil {
+		return err
+        }
+
+	return pingResponse
 }
 
 func (dg *dockerGoClient) ListImages(ctx context.Context, timeout time.Duration) ListImagesResponse {

@@ -1072,7 +1072,7 @@ func (dg *dockerGoClient) PingDocker(ctx context.Context, timeout time.Duration)
 
 	// Buffered channel so in the case of timeout it takes one write, never gets
 	// read, and can still be GC'd
-	response := make(chan types.Ping, 1)
+	response := make(chan PingResponse, 1)
 	go func() { response <- dg.pingDocker(ctx) }()
 	select {
 	case resp := <-response:
@@ -1099,7 +1099,7 @@ func (dg *dockerGoClient) pingDocker(ctx context.Context) PingResponse {
 		return PingResponse{Error: err} 
         }
 
-	return PingResponse{Response: pingResponse}
+	return PingResponse{Response: &pingResponse}
 }
 
 func (dg *dockerGoClient) ListImages(ctx context.Context, timeout time.Duration) ListImagesResponse {

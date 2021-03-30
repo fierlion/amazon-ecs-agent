@@ -98,7 +98,7 @@ type ListImagesResponse struct {
 }
 
 type PingResponse struct {
-	PingResponse *types.Ping
+	Response *types.Ping
 	Error error
 }
 

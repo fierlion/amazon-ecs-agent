@@ -162,7 +162,7 @@ type DockerClient interface {
 	// should be provided for the request.
 	ListContainers(context.Context, bool, time.Duration) ListContainersResponse
 
-	PingDocker(context.Context, time.Duration) 
+	PingDocker(context.Context, time.Duration) PingResponse
 
 	// ListImages returns the set of the images known to the Docker daemon
 	ListImages(context.Context, time.Duration) ListImagesResponse
@@ -1099,7 +1099,7 @@ func (dg *dockerGoClient) pingDocker(ctx context.Context) PingResponse {
 		return PingResponse{Error: err} 
         }
 
-	return PingResponse{PingResponse: &pingResponse}
+	return PingResponse{Response: pingResponse}
 }
 
 func (dg *dockerGoClient) ListImages(ctx context.Context, timeout time.Duration) ListImagesResponse {

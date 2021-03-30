@@ -1076,7 +1076,7 @@ func (dg *dockerGoClient) PingDocker(ctx context.Context, timeout time.Duration)
 	go func() { response <- dg.pingDocker(ctx) }()
 	select {
 	case resp := <-response:
-		return response 
+		return resp
 	case <-ctx.Done():
 		// Context has either expired or canceled. If it has timed out,
 		// send back the DockerTimeoutError

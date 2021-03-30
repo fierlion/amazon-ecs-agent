@@ -171,7 +171,7 @@ func ackPublishMetricHandler(timer *time.Timer, taskEngine engine.TaskEngine) fu
 	return func(*ecstcs.AckPublishMetric) {
 		seelog.Debug("Received AckPublishMetric from tcs")
 		dockerTaskEngine := taskEngine.TaskEngineClient()
-		pingResponse := dockerTaskEngine.Ping(context.TODO(), time.Second*2)
+		pingResponse := dockerTaskEngine.PingDocker(context.TODO(), time.Second*2)
 		seelog.Debugf("Docker Ping response: %v", pingResponse)
 		timer.Reset(retry.AddJitter(defaultHeartbeatTimeout, defaultHeartbeatJitter))
 	}
